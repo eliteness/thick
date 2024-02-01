@@ -506,6 +506,13 @@ POOLS = {
 			a: "0xce765688FeBE127A4300aE5bA96365FAF35Bdeed",
 			t: [ TOKENS[250].mc_usdc, TOKENS[250].mc_usdc ],
 		},
+		{	//0
+			i: 0,
+			b: 1,
+			f: 1,
+			a: "0x7d9E70a53753700dA71b7F110F49BA8A4605FCE0",
+			t: [ TOKENS[250].mc_usdc, TOKENS[250].mc_usdc ],
+		},
 	],
 	42161 : [
 		{
@@ -626,11 +633,14 @@ async function pre_stats() {
 		ARB_USDCE.balanceOf(POOLS[42161][0].a),
 		BASE_WETH.balanceOf(POOLS[8453][0].a),
 		BASE_USDBC.balanceOf(POOLS[8453][0].a),
+		FTM_AXLUSDC.balanceOf(POOLS[250][1].a),
+		FTM_WFTM.balanceOf(POOLS[250][1].a),
 	]);
 
 
 	$("250-0-gr0").innerHTML = ( Number( _gr[0] ) / 1e18 ).toLocaleString();
 	$("250-0-gr1").innerHTML = ( Number( _gr[1] ) / 1e06 ).toLocaleString();
+
 
 	$("42161-0-gr0").innerHTML = ( Number( _gr[2] ) / 1e18 ).toLocaleString();
 	$("42161-0-gr1").innerHTML = ( Number( _gr[3] ) / 1e06 ).toLocaleString();
@@ -638,14 +648,17 @@ async function pre_stats() {
 	$("8453-0-gr0").innerHTML = ( Number( _gr[4] ) / 1e18 ).toLocaleString();
 	$("8453-0-gr1").innerHTML = ( Number( _gr[5] ) / 1e06 ).toLocaleString();
 
+	$("250-1-gr0").innerHTML = ( Number( _gr[6] ) / 1e06 ).toLocaleString();
+	$("250-1-gr1").innerHTML = ( Number( _gr[7] ) / 1e18 ).toLocaleString();
 
-	_cgd = await (await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=fantom%2Cethereum&order=id_asc&per_page=100&page=1&sparkline=false&price_change_percentage=30d&locale=en")).json();
+
+	_cgd = await (await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum%2Cfantom&order=id_asc&per_page=100&page=1&sparkline=false&price_change_percentage=30d&locale=en")).json();
 
 
-	$("250-0-tvl").innerHTML   = "$" + Number( ( Number( _gr[0] ) / 1e18 * _cgd[0].current_price + Number( _gr[1] ) / 1e06 ).toFixed() ).toLocaleString();
-	$("42161-0-tvl").innerHTML = "$" + Number( ( Number( _gr[2] ) / 1e18 * _cgd[1].current_price + Number( _gr[3] ) / 1e06 ).toFixed() ).toLocaleString();
-	$("8453-0-tvl").innerHTML  = "$" + Number( ( Number( _gr[4] ) / 1e18 * _cgd[1].current_price + Number( _gr[5] ) / 1e06 ).toFixed() ).toLocaleString();
-
+	$("250-0-tvl").innerHTML   = "$" + Number( ( Number( _gr[0] ) / 1e18 * _cgd[1].current_price + Number( _gr[1] ) / 1e06 ).toFixed() ).toLocaleString();
+	$("42161-0-tvl").innerHTML = "$" + Number( ( Number( _gr[2] ) / 1e18 * _cgd[0].current_price + Number( _gr[3] ) / 1e06 ).toFixed() ).toLocaleString();
+	$("8453-0-tvl").innerHTML  = "$" + Number( ( Number( _gr[4] ) / 1e18 * _cgd[0].current_price + Number( _gr[5] ) / 1e06 ).toFixed() ).toLocaleString();
+	$("250-1-tvl").innerHTML   = "$" + Number( ( Number( _gr[6] ) / 1e06 + _cgd[1].current_price * Number( _gr[7] ) / 1e18 ).toFixed() ).toLocaleString();
 
 
 	sortit(3,"allpools","allpools-row","allpools-item");

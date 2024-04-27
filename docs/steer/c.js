@@ -314,11 +314,11 @@ async function gubs() {
 
 	$("mint-balance-x").innerHTML = `<span onclick='$("mint-inp-x").value=${_ub_x};quoteMint()'>Balance: `+ _ub_x +" "+ T_X.symbol+"</span>";
 	$("mint-balance-y").innerHTML = `<span onclick='$("mint-inp-y").value=${_ub_y};quoteMint()'>Balance: `+ _ub_y +" "+ T_Y.symbol+"</span>";
-	$("burn-balance-f").innerHTML = `<span onclick='$("burn-inp-f").value=${_ub_f};quoteBurn()'>Balance: `+ _ub_f +" "+ FTOKEN_TICKER+"</span>";
+	$("burn-balance-f").innerHTML = `<span onclick='$("burn-inp-f").value=${_ub_f};quoteBurn()'>Balance: `+ _ub_f +" "+ ALM.ticker+"</span>";
 
 	$("burn-balance-x").innerHTML = `<span onclick=''>Balance: `+ _ub_x +" "+ T_X.symbol+"</span>";
 	$("burn-balance-y").innerHTML = `<span onclick=''>Balance: `+ _ub_y +" "+ T_Y.symbol+"</span>";
-	$("mint-balance-f").innerHTML = `<span onclick='$'>Balance: `+ _ub_f +" "+ FTOKEN_TICKER+"</span>";
+	$("mint-balance-f").innerHTML = `<span onclick='$'>Balance: `+ _ub_f +" "+ ALM.ticker+"</span>";
 
 	$("bal_lp").innerHTML = (bal[3]/1e18).toFixed(8);
 	$("bal_fa").innerHTML = (bal[4]/1e18).toFixed(8);
@@ -333,7 +333,7 @@ async function gubs() {
 	$("headline-apr-pc").innerHTML = fornum(bal[8][0],18) + "% APR in Incentives";
 	$("headline-apr-wk").innerHTML = fornum(bal[11][3]*604800,18) + " per week";
 
-	paintMintPremDisc(bal[9]);
+	//paintMintPremDisc(bal[9]);
 
 	////////
 	////////
@@ -424,21 +424,21 @@ async function mint() {
 	if(!isFinite(_bamt)) { notice(`<h3>Invalid amount of ${T_Y.symbol} input!</h3>`); return;}	_bamt=Number(_bamt);
 	_T_X = new ethers.Contract(T_X.address, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
 	_T_Y = new ethers.Contract(T_Y.address, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
-	_FV = new ethers.Contract(FVAULT, ["function deposit(uint,uint,uint)","function withdraw(uint,uint,uint)"],signer);
+	_V = new ethers.Contract(ALM.vault, ["function deposit(uint,uint,uint,uint,address)"],signer);
 
 	notice(`
 		Validating your request...<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> Ask-Side Liquidity: ${_aamt} ${T_X.symbol}
-		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> Bid-Side Liquidity: ${_bamt} ${T_Y.symbol}
+		<br><img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> ${_aamt} ${T_X.symbol}
+		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> ${_bamt} ${T_Y.symbol}
 		<br><br>Please wait..
 	`);
 
 	let _usernums = await Promise.all([
 		"0x0",
 		_T_X.balanceOf(window.ethereum.selectedAddress),
-		_T_X.allowance(window.ethereum.selectedAddress, FVAULT),
+		_T_X.allowance(window.ethereum.selectedAddress, ALM.vault),
 		_T_Y.balanceOf(window.ethereum.selectedAddress),
-		_T_Y.allowance(window.ethereum.selectedAddress, FVAULT),
+		_T_Y.allowance(window.ethereum.selectedAddress, ALM.vault),
 	]);
 
 	console.log("onp-create",_aamt,_bamt,_usernums);
@@ -479,8 +479,8 @@ async function mint() {
 
 		notice(`
 			<h2>Approvals Granted!</h2>
-			<img style="vertical-align: bottom;" height="32px" src="${T_X.logo}"> Asks: ${_aamt} ${T_X.symbol}
-			<img style="vertical-align: bottom;" height="32px" src="${T_Y.logo}"> Bids: ${_bamt} ${T_Y.symbol}
+			<img style="vertical-align: bottom;" height="32px" src="${T_X.logo}"> ${_aamt} ${T_X.symbol}
+			<img style="vertical-align: bottom;" height="32px" src="${T_Y.logo}"> ${_bamt} ${T_Y.symbol}
 			<br>Starting Order Creation...
 		`);
 	};
@@ -489,16 +489,18 @@ async function mint() {
 	//if(_aamt<T_X.minimum/10**T_X.decimals) { notice(`<h3>Amount of ${T_X.symbol} low!</h3>Minimum order size: ${T_X.minimum/10**T_X.decimals}`); return;}
 	//if(_bamt<T_Y.minimum/10**T_Y.decimals) { notice(`<h3>Amount of ${T_Y.symbol} low!</h3>Minimum order size: ${T_Y.minimum/10**T_Y.decimals}`); return;}
 	notice(`
-		<h2>Minting F* tokens</h3>
-		<h3>Creating an EⅢ Position</h3>
-		<img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> Asks: ${_aamt} ${T_X.symbol}
-		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> Bids: ${_bamt} ${T_Y.symbol}
+		<h2>Minting autoLP tokens</h3>
+		<h3>Creating a Thick Position</h3>
+		<img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> ${_aamt} ${T_X.symbol}
+		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> ${_bamt} ${T_Y.symbol}
 	`);
 
 	txh = await _FV.deposit(
 		BigInt(Math.floor(_aamt*10**T_X.decimals)),
 		BigInt(Math.floor(_bamt*10**T_Y.decimals)),
-		BigInt(Math.floor( ( _aamt*10**T_X.decimals + _bamt*10**T_Y.decimals) * SLIPBPS/1e4 )),
+		1,
+		1,
+		window.ethereum.selectedAddress,
 	);
 	notice(`
 		<h2>Opening a new position</h2>
@@ -506,9 +508,6 @@ async function mint() {
 			<img style="vertical-align: bottom;" height="64px" src="${T_X.logo}">
 			<img style="vertical-align: bottom;" height="64px" src="${T_Y.logo}">
 		</div>
-		<br>Minimum ${FTOKEN_TICKER} Received:
-		<br>${( (_aamt*10**T_X.decimals + _bamt*10**T_Y.decimals) * (10**(18-Math.floor(T_X.decimals/2+T_Y.decimals/2))) * SLIPBPS / 1e4 / 1e18).toFixed(18)}
-		<br>
 		<br><b>Awaiting confirmation from the network . . .</b>
 		<br<i>Please wait.</i>
 		<h4 align="center"><a target="_blank" href="${EXPLORE}/tx/${txh.hash}">View on Explorer</a></h4>
@@ -518,8 +517,8 @@ async function mint() {
 		<h2>New Position Opened!</h2>
 		Using <b>Ultra-Wide Flat</b> strategy..
 		<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> Asks: ${_aamt} ${T_X.symbol}
-		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> Bids: ${_bamt} ${T_Y.symbol}
+		<br><img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> ${_aamt} ${T_X.symbol}
+		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> ${_bamt} ${T_Y.symbol}
 		<h4 align="center"><a target="_blank" href="${EXPLORE}/tx/${txh.hash}">View on Explorer</a></h4>
 	`);
 	gubs();paintBook();
@@ -531,19 +530,19 @@ async function mint() {
 async function redeem() {
 
 	let _aamt = $("burn-inp-f").value;
-	if(!isFinite(_aamt)) { notice(`<h3>Invalid amount of ${FTOKEN_TICKER} input!</h3>`); return;}	_aamt=Number(_aamt);
+	if(!isFinite(_aamt)) { notice(`<h3>Invalid amount of ${ALM.ticker} input!</h3>`); return;}	_aamt=Number(_aamt);
 	_T_F = new ethers.Contract(FTOKEN, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
-	_FV = new ethers.Contract(FVAULT, ["function deposit(uint,uint,uint)","function withdraw(uint,uint,uint)"],signer);
+	_V = new ethers.Contract(ALM.vault, ["function withdraw(uint,uint,uint,address)"],signer);
 
 	notice(`
 		Validating your request...<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${FTOKEN_TICKER}
+		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
 		<br><br>Please wait..
 	`);
 
 	let _usernums = await Promise.all([
 		_T_F.balanceOf(window.ethereum.selectedAddress),
-		_T_F.allowance(window.ethereum.selectedAddress, FVAULT)
+		_T_F.allowance(window.ethereum.selectedAddress, ALM.vault)
 	]);
 
 	console.log("onp-create",_aamt,_usernums);
@@ -551,19 +550,20 @@ async function redeem() {
 	if( _usernums[0] < (_aamt*1e18) ) {
 		notice(`
 			<h3>Insufficient Balance!</h3>
-			<br>Desired ${FTOKEN_TICKER}: ${(_aamt).toFixed(6)}
-			<br>Available ${FTOKEN_TICKER}: ${_usernums[0]/1e18}
+			<br>Desired ${ALM.ticker}: ${(_aamt).toFixed(6)}
+			<br>Available ${ALM.ticker}: ${_usernums[0]/1e18}
 		`);
 		return;
 	};
 
 
+	/*
 	if( _usernums[1] < (_aamt*1e18) ) {
 		notice(`
 			<h3>Insufficient Allowances!</h3>
-			<br>Desired ${FTOKEN_TICKER}: ${(_aamt).toFixed(6)}
-			<br>Allowed ${FTOKEN_TICKER}: ${_usernums[1]/1e18}
-			<br><br>E3 Engine needs your approval to Close this position.
+			<br>Desired ${ALM.ticker}: ${(_aamt).toFixed(6)}
+			<br>Allowed ${ALM.ticker}: ${_usernums[1]/1e18}
+			<br><br>We need your approval to Close this position.
 			<br><i>Please confirm approval transactions in your wallet.</i>
 		`);
 
@@ -572,19 +572,20 @@ async function redeem() {
 
 		notice(`
 			<h2>Approvals Granted!</h2>
-			<img style="vertical-align: bottom;" height="32px" src="${FTOKEN_LOGO}"> ${_aamt} ${FTOKEN_TICKER}
+			<img style="vertical-align: bottom;" height="32px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
 			<br>Starting F* Redemption...
 		`);
 	};
+	*/
 
 
 	//if(_aamt<T_X.minimum/10**T_X.decimals) { notice(`<h3>Amount of ${T_X.symbol} low!</h3>Minimum order size: ${T_X.minimum/10**T_X.decimals}`); return;}
 	//if(_bamt<T_Y.minimum/10**T_Y.decimals) { notice(`<h3>Amount of ${T_Y.symbol} low!</h3>Minimum order size: ${T_Y.minimum/10**T_Y.decimals}`); return;}
 	notice(`
-		<h2>Redeemin F* tokens</h3>
-		<h3>Witdrawing EⅢ Position</h3>
+		<h2>Redeemin ${ALM.ticker} tokens</h3>
+		<h3>Withdrawing Position</h3>
 		<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${FTOKEN_TICKER}
+		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
 	`);
 
 	txh = await _FV.withdraw(
@@ -597,8 +598,8 @@ async function redeem() {
 		<div align="center">
 			<img style="vertical-align: bottom;" height="64px" src="${FTOKEN_LOGO}">
 		</div>
-		<br>F* Tokens Redeemed:
-		<br>${_aamt} ${FTOKEN_TICKER}
+		<br>Tokens Redeemed:
+		<br>${_aamt} ${ALM.ticker}
 		<br>
 		<br><b>Awaiting confirmation from the network . . .</b>
 		<br<i>Please wait.</i>
@@ -616,10 +617,10 @@ async function redeem() {
 
 
 async function deposit(ismax) {
-	lp = new ethers.Contract(WRAP, LPABI, signer);
-	fa = new ethers.Contract(FARM, FARABI, signer);
+	lp = new ethers.Contract(ALM.wrapper, LPABI, signer);
+	fa = new ethers.Contract(ALM.farm, FARABI, signer);
 	al = await Promise.all([
-		lp.allowance(window.ethereum.selectedAddress, FARM),
+		lp.allowance(window.ethereum.selectedAddress, ALM.farm),
 		lp.balanceOf(window.ethereum.selectedAddress)
 	]);
 	let amt = 0;
@@ -629,14 +630,14 @@ async function deposit(ismax) {
 		if(!isFinite(am) || am<1/1e18) {notice(`<h2>Please increase amount!</h2>You have entered an invalid or zero amount.<br><br>Your input: ${am}`);return}
 		amt = BigInt(Math.floor(am*1e18));
 	}
-	if(Number(amt)>Number(al[1])) {notice(`<h2>Insufficient Balance!</h2><h3>Desired Stake:</h3>${amt/1e18}<br><h3>Actual Balance:</h3>${al[1]/1e18}<br><br><b>Please reduce the amount and retry again, or accumulate some more ${WRAPNAME}.`);}
+	if(Number(amt)>Number(al[1])) {notice(`<h2>Insufficient Balance!</h2><h3>Desired Stake:</h3>${amt/1e18}<br><h3>Actual Balance:</h3>${al[1]/1e18}<br><br><b>Please reduce the amount and retry again, or accumulate some more ${ALM.ticker}.`);}
 	if(Number(amt)>Number(al[0])){
 		notice(`
 			<h3>Approval required</h3>
-			${WRAPNAME} requires your approval for Staking.<br><br>
+			${ALM.ticker} requires your approval for Staking.<br><br>
 			<h4><u><i>Please Confirm this transaction in your wallet!</i></u></h4>
 		`);
-		let _tr = await lp.approve(FARM,ethers.constants.MaxUint256);
+		let _tr = await lp.approve(ALM.farm,ethers.constants.MaxUint256);
 		console.log(_tr);
 		notice(`
 			<h3>Submitting Approval Transaction!</h3>
@@ -646,22 +647,22 @@ async function deposit(ismax) {
 		console.log(_tw)
 		notice(`
 			<h3>Approval Completed!</h3>
-			<br>Spending rights granted on ${WRAPNAME}.<br>
+			<br>Spending rights granted on ${ALM.ticker}.<br>
 			<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 			<br><br>
 			Please confirm the next step your wallet provider now.
 		`);
 	}
 	notice(`
-		<h3>Staking ${WRAPNAME}</h3>
+		<h3>Staking ${ALM.ticker}</h3>
 		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
-		<u>${ fornum(amt,18).toLocaleString() } ${WRAPNAME}</u><br><br>
+		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><u><i>Please Confirm this transaction in your wallet!</i></u></h4>
 	`);
 	let _tr = ismax ? await fa.depositAll() : await fa.deposit(amt);
 	console.log(_tr);
 	notice(`
-		<h3>Depositing ${WRAPNAME}!</h3>
+		<h3>Depositing ${ALM.ticker}!</h3>
 		Get ready to start enjoying ${TEARNSYM.join(" + ")} rewards!<br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);
@@ -671,14 +672,14 @@ async function deposit(ismax) {
 		<h3>Deposit Successful!</h3>
 		<br>Amount Staked:<br>
 		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
-		<u>${ fornum(amt,18).toLocaleString() } ${WRAPNAME}</u><br><br>
+		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);
 }
 
 async function withdraw(ismax) {
-	lp = new ethers.Contract(WRAP, LPABI, signer);
-	fa = new ethers.Contract(FARM, FARABI, signer);
+	lp = new ethers.Contract(ALM.wrapper, LPABI, signer);
+	fa = new ethers.Contract(ALM.farm, FARABI, signer);
 	al = await Promise.all([
 		fa.balanceOf(window.ethereum.selectedAddress)
 	]);
@@ -689,27 +690,27 @@ async function withdraw(ismax) {
 		if(!isFinite(am) || am<1/1e18) {notice(`<h2>Please decrease amount!</h2>You have entered an invalid or exaggerated amount.<br><br>Your input: ${am}`);return}
 		amt = BigInt(Math.floor(am*1e18));
 	}
-	if(Number(amt)>Number(al[0])) {notice(`<h2>Insufficient Balance Staked!</h2><h3>Desired Stake:</h3>${amt/1e18}<br><h3>Actual Staked:</h3>${al[1]/1e18}<br><br><b>Please reduce the amount and retry again to unstake ${WRAPNAME}.`);}
+	if(Number(amt)>Number(al[0])) {notice(`<h2>Insufficient Balance Staked!</h2><h3>Desired Stake:</h3>${amt/1e18}<br><h3>Actual Staked:</h3>${al[1]/1e18}<br><br><b>Please reduce the amount and retry again to unstake ${ALM.ticker}.`);}
 	notice(`
-		<h3>Withdrawing ${WRAPNAME}</h3>
+		<h3>Withdrawing ${ALM.ticker}</h3>
 		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
-		<u>${ fornum(amt,18).toLocaleString() } ${WRAPNAME}</u><br><br>
+		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><u><i>Please Confirm this transaction in your wallet!</i></u></h4>
 	`);
 	let _tr = ismax ? await fa.withdrawAll() : await fa.withdraw(amt);
 	console.log(_tr);
 	notice(`
-		<h3>Unstaking ${WRAPNAME}!</h3>
+		<h3>Unstaking ${ALM.ticker}!</h3>
 		We hope you are enjoying your ${TEARNSYM.join(" + ")}     rewards!<br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);
 	_tw = await _tr.wait()
 	console.log(_tw)
 	notice(`
-		<h3>${WRAPNAME} Received!</h3>
+		<h3>${ALM.ticker} Received!</h3>
 		<br>Amount Unstaked:<br>
 		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
-		<u>${ fornum(amt,18).toLocaleString() } ${WRAPNAME}</u><br><br>
+		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);
 }
@@ -764,6 +765,7 @@ async function dexstats() {
 }
 
 function paintMintPremDisc(_rd) {
+	return;
 	_bucki=0;
 	for(let i=0;i<_rd[0].length;i++){
 		if(Number(_rd[4][i])>0&&Number(_rd[5][i])>0){

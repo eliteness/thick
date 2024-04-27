@@ -284,24 +284,24 @@ function arf(){
 async function gubs() {
 	gubs_tx = new ethers.Contract(T_X.address, ["function balanceOf(address) public view returns(uint)"], signer);
 	gubs_ty = new ethers.Contract(T_Y.address, ["function balanceOf(address) public view returns(uint)"], signer);
-	gubs_tf = new ethers.Contract(FTOKEN, ["function balanceOf(address) public view returns(uint)"], signer);
+	gubs_tf = new ethers.Contract(ALM.wrapper, ["function balanceOf(address) public view returns(uint)"], signer);
 	lp = new ethers.Contract(WRAP, LPABI, signer);
 	fa = new ethers.Contract(FARM, FARABI, signer);
-	e3lp = new ethers.Contract(POOLADDR, PAIRABI, signer);
+	vault = new ethers.Contract(ALM.vault, ["function getTotalAmounts() public view returns(uint,uint)"], signer);
 	//fa_o = new ethers.Contract(FARMOLD, FARABI, signer);
 	_BL=new ethers.Contract(BL[CHAINID],[{"inputs": [],"name": "LA","outputs": [{"internalType": "contract ILA","name": "","type": "address"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "contract IP","name": "p","type": "address"}],"name": "bucketList","outputs": [{"internalType": "uint24[]","name": "","type": "uint24[]"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "uint24[]","name": "inp","type": "uint24[]"}],"name": "cast_24_256","outputs": [{"internalType": "uint256[]","name": "","type": "uint256[]"}],"stateMutability": "pure","type": "function"},{"inputs": [{"internalType": "address","name": "user","type": "address"},{"internalType": "address","name": "_pair","type": "address"}],"name": "poolInfo","outputs": [{"internalType": "uint256[]","name": "bIds","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "liquidities","type": "uint256[]"},{"internalType": "uint256[]","name": "TamountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "TamountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "Tliquidities","type": "uint256[]"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "address","name": "user","type": "address"},{"internalType": "address","name": "_pair","type": "address"}],"name": "positionOf","outputs": [{"internalType": "uint256[]","name": "bIds","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "liquidities","type": "uint256[]"}],"stateMutability": "view","type": "function"}],provider);
 	bal = await Promise.all([
 		gubs_tx.balanceOf(window.ethereum.selectedAddress),
 		gubs_ty.balanceOf(window.ethereum.selectedAddress),
 		gubs_tf.balanceOf(window.ethereum.selectedAddress),
-		lp.balanceOf(window.ethereum.selectedAddress),
+		0,//lp.balanceOf(window.ethereum.selectedAddress),
 		fa.balanceOf(window.ethereum.selectedAddress),
 		fa.earned(TEARNED[0], window.ethereum.selectedAddress),
 		fa.earnings(window.ethereum.selectedAddress, TEARNED[0]),
 		fa.tvl(),
 		fa.aprs(),
-		_BL.poolInfo(FVAULT, POOLADDR),
-		e3lp.getReserves(),
+		[],//_BL.poolInfo(FVAULT, POOLADDR),
+		vault.getTotalAmounts(),//e3lp.getReserves(),
 		fa.rewardData(TEARNED[0])
 		//fa_o.balanceOf(window.ethereum.selectedAddress)
 	]);
@@ -320,7 +320,7 @@ async function gubs() {
 	$("burn-balance-y").innerHTML = `<span onclick=''>Balance: `+ _ub_y +" "+ T_Y.symbol+"</span>";
 	$("mint-balance-f").innerHTML = `<span onclick='$'>Balance: `+ _ub_f +" "+ ALM.ticker+"</span>";
 
-	$("bal_lp").innerHTML = (bal[3]/1e18).toFixed(8);
+	$("bal_lp").innerHTML = (bal[2]/1e18).toFixed(8);
 	$("bal_fa").innerHTML = (bal[4]/1e18).toFixed(8);
 	$("bal_r0").innerHTML = (bal[5]/1e18).toFixed(8);
 	$("bal_tr0").innerHTML = (bal[6]/1e18).toFixed(8);
@@ -352,9 +352,9 @@ async function pre_stats() {
 	bal = await Promise.all([
 		fa.tvl(),
 		fa.aprs(),
-		_BL.poolInfo(FVAULT, POOLADDR),
-		e3lp.getReserves(),
-		fa.rewardData(TEARNED[0])
+		//_BL.poolInfo(FVAULT, POOLADDR),
+		//e3lp.getReserves(),
+		//fa.rewardData(TEARNED[0])
 	]);
 	$("bal_tvl").innerHTML = fornum(bal[0],18);
 	$("bal_apr").innerHTML = fornum(bal[1][0],18);
@@ -464,13 +464,13 @@ async function mint() {
 			<br>
 			<br>Desired ${T_Y.symbol}: ${(_bamt).toFixed(6)}
 			<br>Allowed ${T_Y.symbol}: ${_usernums[4]/10**T_Y.decimals}
-			<br><br>E3 Engine needs your approval to open a new	position.
+			<br><br>We need your approval to open a new	position.
 			<br><i>Please confirm approval transactions in your wallet.</i>
 		`);
 
 		txh = await Promise.all([
-			_usernums[2] < (_aamt*10**T_X.decimals) ? _T_X.approve(FVAULT, BigInt(Math.floor(_aamt*10**T_X.decimals))) : true,
-			_usernums[4] < (_bamt*10**T_Y.decimals) ? _T_Y.approve(FVAULT, BigInt(Math.floor(_bamt*10**T_Y.decimals))) : true,
+			_usernums[2] < (_aamt*10**T_X.decimals) ? _T_X.approve(ALM.vault, BigInt(Math.floor(_aamt*10**T_X.decimals))) : true,
+			_usernums[4] < (_bamt*10**T_Y.decimals) ? _T_Y.approve(ALM.vault, BigInt(Math.floor(_bamt*10**T_Y.decimals))) : true,
 		]);
 		txr = await Promise.all([
 			txh[0] == true ? true : txh[0].wait(),
@@ -489,13 +489,13 @@ async function mint() {
 	//if(_aamt<T_X.minimum/10**T_X.decimals) { notice(`<h3>Amount of ${T_X.symbol} low!</h3>Minimum order size: ${T_X.minimum/10**T_X.decimals}`); return;}
 	//if(_bamt<T_Y.minimum/10**T_Y.decimals) { notice(`<h3>Amount of ${T_Y.symbol} low!</h3>Minimum order size: ${T_Y.minimum/10**T_Y.decimals}`); return;}
 	notice(`
-		<h2>Minting autoLP tokens</h3>
+		<h2>Minting ${ALM.ticker} tokens</h3>
 		<h3>Creating a Thick Position</h3>
 		<img style="vertical-align: bottom;" height="20px" src="${T_X.logo}"> ${_aamt} ${T_X.symbol}
 		<br><img style="vertical-align: bottom;" height="20px" src="${T_Y.logo}"> ${_bamt} ${T_Y.symbol}
 	`);
 
-	txh = await _FV.deposit(
+	txh = await _V.deposit(
 		BigInt(Math.floor(_aamt*10**T_X.decimals)),
 		BigInt(Math.floor(_bamt*10**T_Y.decimals)),
 		1,
@@ -531,12 +531,12 @@ async function redeem() {
 
 	let _aamt = $("burn-inp-f").value;
 	if(!isFinite(_aamt)) { notice(`<h3>Invalid amount of ${ALM.ticker} input!</h3>`); return;}	_aamt=Number(_aamt);
-	_T_F = new ethers.Contract(FTOKEN, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
+	_T_F = new ethers.Contract(ALM.wrapper, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
 	_V = new ethers.Contract(ALM.vault, ["function withdraw(uint,uint,uint,address)"],signer);
 
 	notice(`
 		Validating your request...<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
+		<br><img style="vertical-align: bottom;" height="20px" src="${ALM.logo}"> ${_aamt} ${ALM.ticker}
 		<br><br>Please wait..
 	`);
 
@@ -572,7 +572,7 @@ async function redeem() {
 
 		notice(`
 			<h2>Approvals Granted!</h2>
-			<img style="vertical-align: bottom;" height="32px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
+			<img style="vertical-align: bottom;" height="32px" src="${ALM.logo}"> ${_aamt} ${ALM.ticker}
 			<br>Starting F* Redemption...
 		`);
 	};
@@ -585,18 +585,19 @@ async function redeem() {
 		<h2>Redeemin ${ALM.ticker} tokens</h3>
 		<h3>Withdrawing Position</h3>
 		<br>
-		<br><img style="vertical-align: bottom;" height="20px" src="${FTOKEN_LOGO}"> ${_aamt} ${ALM.ticker}
+		<br><img style="vertical-align: bottom;" height="20px" src="${ALM.logo}"> ${_aamt} ${ALM.ticker}
 	`);
 
-	txh = await _FV.withdraw(
+	txh = await _V.withdraw(
 		BigInt(Math.floor(_aamt*1e18)),
-		0,//BigInt(Math.floor(_aamt*1e18*SLIPBPS/1e4*SLIPBPS/1e4)),
-		0,//BigInt(Math.floor(_aamt*1e18*SLIPBPS/1e4*SLIPBPS/1e4)),
+		1,//BigInt(Math.floor(_aamt*1e18*SLIPBPS/1e4*SLIPBPS/1e4)),
+		1,//BigInt(Math.floor(_aamt*1e18*SLIPBPS/1e4*SLIPBPS/1e4)),
+		window.ethereum.selectedAddress
 	);
 	notice(`
 		<h2>Closing your position</h2>
 		<div align="center">
-			<img style="vertical-align: bottom;" height="64px" src="${FTOKEN_LOGO}">
+			<img style="vertical-align: bottom;" height="64px" src="${ALM.logo}">
 		</div>
 		<br>Tokens Redeemed:
 		<br>${_aamt} ${ALM.ticker}
@@ -655,7 +656,7 @@ async function deposit(ismax) {
 	}
 	notice(`
 		<h3>Staking ${ALM.ticker}</h3>
-		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
+		<img style='height:20px;position:relative;top:4px' src="${ALM.logo}">
 		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><u><i>Please Confirm this transaction in your wallet!</i></u></h4>
 	`);
@@ -671,7 +672,7 @@ async function deposit(ismax) {
 	notice(`
 		<h3>Deposit Successful!</h3>
 		<br>Amount Staked:<br>
-		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
+		<img style='height:20px;position:relative;top:4px' src="${ALM.logo}">
 		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);
@@ -693,7 +694,7 @@ async function withdraw(ismax) {
 	if(Number(amt)>Number(al[0])) {notice(`<h2>Insufficient Balance Staked!</h2><h3>Desired Stake:</h3>${amt/1e18}<br><h3>Actual Staked:</h3>${al[1]/1e18}<br><br><b>Please reduce the amount and retry again to unstake ${ALM.ticker}.`);}
 	notice(`
 		<h3>Withdrawing ${ALM.ticker}</h3>
-		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
+		<img style='height:20px;position:relative;top:4px' src="${ALM.logo}">
 		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><u><i>Please Confirm this transaction in your wallet!</i></u></h4>
 	`);
@@ -709,7 +710,7 @@ async function withdraw(ismax) {
 	notice(`
 		<h3>${ALM.ticker} Received!</h3>
 		<br>Amount Unstaked:<br>
-		<img style='height:20px;position:relative;top:4px' src="${WRAPLOGO}">
+		<img style='height:20px;position:relative;top:4px' src="${ALM.logo}">
 		<u>${ fornum(amt,18).toLocaleString() } ${ALM.ticker}</u><br><br>
 		<h4><a target="_blank" href="${EXPLORE}/tx/${_tr.hash}">View on Explorer</a></h4>
 	`);

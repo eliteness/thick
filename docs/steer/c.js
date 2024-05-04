@@ -326,13 +326,13 @@ async function gubs() {
 	$("bal_tr0").innerHTML = (bal[6]/1e18).toFixed(8);
 	$("bal_tvl").innerHTML = fornum(bal[7],18);
 	$("bal_apr").innerHTML = fornum(bal[8][0],18);
-
+/*
 	$("headline-tvl-usd").innerHTML = "$" + fornum(Number(bal[10][0])+Number(bal[10][1]),6) + " in Liquidity";
 	$("headline-tvl-rx").innerHTML = fornum(bal[10][0],6);
 	$("headline-tvl-ry").innerHTML = fornum(bal[10][1],6);
 	$("headline-apr-pc").innerHTML = fornum(bal[8][0],18) + "% APR in Incentives";
 	$("headline-apr-wk").innerHTML = fornum(bal[11][3]*604800,18) + " per week";
-
+*/
 	//paintMintPremDisc(bal[9]);
 
 	////////
@@ -347,14 +347,12 @@ async function pre_stats() {
 	prepro = new ethers.providers.JsonRpcProvider(RPC_URL);
 	lp = new ethers.Contract(WRAP, LPABI, prepro);
 	fa = new ethers.Contract(FARM, FARABI, prepro);
-	e3lp = new ethers.Contract(POOLADDR, PAIRABI, prepro);
-	_BL= new ethers.Contract(BL[CHAINID],[{"inputs": [],"name": "LA","outputs": [{"internalType": "contract ILA","name": "","type": "address"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "contract IP","name": "p","type": "address"}],"name": "bucketList","outputs": [{"internalType": "uint24[]","name": "","type": "uint24[]"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "uint24[]","name": "inp","type": "uint24[]"}],"name": "cast_24_256","outputs": [{"internalType": "uint256[]","name": "","type": "uint256[]"}],"stateMutability": "pure","type": "function"},{"inputs": [{"internalType": "address","name": "user","type": "address"},{"internalType": "address","name": "_pair","type": "address"}],"name": "poolInfo","outputs": [{"internalType": "uint256[]","name": "bIds","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "liquidities","type": "uint256[]"},{"internalType": "uint256[]","name": "TamountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "TamountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "Tliquidities","type": "uint256[]"}],"stateMutability": "view","type": "function"},{"inputs": [{"internalType": "address","name": "user","type": "address"},{"internalType": "address","name": "_pair","type": "address"}],"name": "positionOf","outputs": [{"internalType": "uint256[]","name": "bIds","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsX","type": "uint256[]"},{"internalType": "uint256[]","name": "amountsY","type": "uint256[]"},{"internalType": "uint256[]","name": "liquidities","type": "uint256[]"}],"stateMutability": "view","type": "function"}],prepro);
+	_V = new ethers.Contract(ALM.vault, ["function getTotalAmounts() public view returns(uint,uint)","function deposit(uint,uint,uint,uint,address)"],prepro);
+
 	bal = await Promise.all([
 		fa.tvl(),
 		fa.aprs(),
-		//_BL.poolInfo(FVAULT, POOLADDR),
-		//e3lp.getReserves(),
-		//fa.rewardData(TEARNED[0])
+		_V.getTotalAmounts()
 	]);
 	$("bal_tvl").innerHTML = fornum(bal[0],18);
 	$("bal_apr").innerHTML = fornum(bal[1][0],18);
@@ -374,7 +372,9 @@ async function pre_stats() {
 	$("burn-logo-alm").src= ALM.logo;
 	$("stake-logo-alm").src= ALM.logo;
 
-	paintMintPremDisc(bal[2]);
+	//paintMintPremDisc(bal[2]);
+	$("lp_currat").innerHTML = `Each 1 ${T_Y.symbol} with ${((bal[2][0]/10**T_X.decimals)/(bal[2][1]/10**T_Y.decimals)).toFixed(8)} ${T_X.symbol}`;
+	$("lp_invrat").innerHTML = `Each 1 ${T_X.symbol} with ${((bal[2][1]/10**T_Y.decimals)/(bal[2][0]/10**T_X.decimals)).toFixed(8)} ${T_Y.symbol}`;
 
 	////////
 	////////
@@ -424,7 +424,8 @@ async function mint() {
 	if(!isFinite(_bamt)) { notice(`<h3>Invalid amount of ${T_Y.symbol} input!</h3>`); return;}	_bamt=Number(_bamt);
 	_T_X = new ethers.Contract(T_X.address, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
 	_T_Y = new ethers.Contract(T_Y.address, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
-	_V = new ethers.Contract(ALM.vault, ["function deposit(uint,uint,uint,uint,address)"],signer);
+
+	_V = new ethers.Contract(ALM.vault, ["function getTotalAmounts() public view returns(uint,uint)","function deposit(uint,uint,uint,uint,address)"],signer);
 
 	notice(`
 		Validating your request...<br>
@@ -439,9 +440,26 @@ async function mint() {
 		_T_X.allowance(window.ethereum.selectedAddress, ALM.vault),
 		_T_Y.balanceOf(window.ethereum.selectedAddress),
 		_T_Y.allowance(window.ethereum.selectedAddress, ALM.vault),
+		_V.getTotalAmounts()
 	]);
 
 	console.log("onp-create",_aamt,_bamt,_usernums);
+
+	_samt = findSuitableRatio(_aamt, _bamt, _usernums[1], _usernums[3], _usernums[4][0], _usernums[4][1] );
+	if(_samt[0] == 0 && _samt[1] ==0) {
+		notice(`
+			<h3>Unsuitable deposit ratio!</h3>
+			<br> Current ratio: 1 ${T_Y.symbol} : ${((_usernums[4][0]/10**T_X.decimals)/(_usernums[4][1]/10**T_Y.decimals)).toFixed(8)} ${T_X.symbol}
+			<br> Inverse ratio: 1 ${T_X.symbol} : ${((_usernums[4][1]/10**T_Y.decimals)/(_usernums[4][0]/10**T_X.decimals)).toFixed(8)} ${T_Y.symbol}
+			<br><br>
+			Your inputs:
+			<br>Desired ${T_X.symbol}: ${(_aamt).toFixed(6)}
+			<br>Desired ${T_Y.symbol}: ${(_bamt).toFixed(6)}
+		`);
+		return;
+	}
+	_aamt = _samt[0];
+	_bamt = _samt[1];
 
 	if( _usernums[1] < (_aamt*10**T_X.decimals) || _usernums[3] < (_bamt*10**T_Y.decimals) ) {
 		notice(`
@@ -783,3 +801,19 @@ function paintMintPremDisc(_rd) {
 		$("mint-premdisc-y").innerHTML = `<span class="mint-disc">Recommended Input Asset</span>`;
 	}
 }
+
+function findSuitableRatio(_ai, _bi, _ua, _ub, _ra, _rb) {
+	_idealb = _ia * _rb/_ra;
+	if(_idealb <= _ib) {
+		if(_idealb <= _ub) { return [_ia,_ib] } // has sufficient & suitable
+	}
+	return [0,0];
+}
+
+
+
+
+
+
+
+

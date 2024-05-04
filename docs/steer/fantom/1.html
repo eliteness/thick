@@ -118,8 +118,9 @@
 			<div style="margin-top: -25px;" align="center">
 				<button class="submit equal-gradient" onclick="mint()"><span id="mint-btn">Mint</span></button>
 				<br><br>
-				<span style="font-family:light_italic">Current Ratio: 1 USDC per 5.00 FTM</span>
-				<br><span style="font-family:light_italic">Inverse Ratio: 1 FTM per 5.00 USDC</span>
+				Suitable Deposit Ratios<br>
+				<span style="font-family:light_italic" id="lp_currat">Current Ratio: 1 X with ? Y</span>
+				<br><span style="font-family:light_italic" id="lp_invrat">Inverse Ratio: 1 Y with ? X</span>
 				<br>
 			</div>
 
@@ -387,17 +388,17 @@
 			POOLADDR = "0x121ce0321de5e245fc49efdbb6444bcb4b42fc6f";
 
 			T_X = {
-				symbol: "WFTM",
-				address: "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
-				decimals: 18,
-				logo: "https://ftm.guru/icons/ftm.svg",
-				minimum: 0
-			}
-			T_Y = {
 				symbol: "axlUSDC",
 				address: "0x1b6382dbdea11d97f24495c9a90b7c88469134a4",
 				decimals: 6,
 				logo: "https://ftm.guru/icons/axl.USDC.png",
+				minimum: 0
+			}
+			T_Y = {
+				symbol: "WFTM",
+				address: "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
+				decimals: 18,
+				logo: "https://ftm.guru/icons/ftm.svg",
 				minimum: 0
 			}
 

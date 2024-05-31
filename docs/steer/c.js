@@ -445,12 +445,12 @@ async function mint() {
 
 	console.log("onp-create",_aamt,_bamt,_usernums);
 
-	_samt = findSuitableRatio(_aamt, _bamt, _usernums[1], _usernums[3], _usernums[4][0], _usernums[4][1] );
+	_samt = findSuitableRatio(_aamt, _bamt, _usernums[1], _usernums[3], _usernums[5][0], _usernums[5][1] );
 	if(_samt[0] == 0 && _samt[1] ==0) {
 		notice(`
 			<h3>Unsuitable deposit ratio!</h3>
-			<br> Current ratio: 1 ${T_Y.symbol} : ${((_usernums[4][0]/10**T_X.decimals)/(_usernums[4][1]/10**T_Y.decimals)).toFixed(8)} ${T_X.symbol}
-			<br> Inverse ratio: 1 ${T_X.symbol} : ${((_usernums[4][1]/10**T_Y.decimals)/(_usernums[4][0]/10**T_X.decimals)).toFixed(8)} ${T_Y.symbol}
+			<br> Current ratio: 1 ${T_Y.symbol} : ${((_usernums[5][0]/10**T_X.decimals)/(_usernums[5][1]/10**T_Y.decimals)).toFixed(8)} ${T_X.symbol}
+			<br> Inverse ratio: 1 ${T_X.symbol} : ${((_usernums[5][1]/10**T_Y.decimals)/(_usernums[5][0]/10**T_X.decimals)).toFixed(8)} ${T_Y.symbol}
 			<br><br>
 			Your inputs:
 			<br>Desired ${T_X.symbol}: ${(_aamt).toFixed(6)}

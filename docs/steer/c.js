@@ -416,8 +416,8 @@ async function quoteBurn() {
 
 async function mint() {
 
-	let _aamt = $("mint-inp-x").value;
-	let _bamt = $("mint-inp-y").value;
+	let _aamt = Number($("mint-inp-x").value);
+	let _bamt = Number($("mint-inp-y").value);
 	if(_aamt=="") {_aamt = 0;}
 	if(_bamt=="") {_bamt = 0;}
 	if(!isFinite(_aamt)) { notice(`<h3>Invalid amount of ${T_X.symbol} input!</h3>`); return;}	_aamt=Number(_aamt);
@@ -547,7 +547,7 @@ async function mint() {
 
 async function redeem() {
 
-	let _aamt = $("burn-inp-f").value;
+	let _aamt = Number($("burn-inp-f").value);
 	if(!isFinite(_aamt)) { notice(`<h3>Invalid amount of ${ALM.ticker} input!</h3>`); return;}	_aamt=Number(_aamt);
 	_T_F = new ethers.Contract(ALM.wrapper, ["function balanceOf(address) public view returns(uint256)","function allowance(address,address) public view returns(uint256)","function approve(address,uint256)"], signer);
 	_V = new ethers.Contract(ALM.vault, ["function withdraw(uint,uint,uint,address)"],signer);
@@ -643,7 +643,7 @@ async function deposit(ismax) {
 		lp.balanceOf(window.ethereum.selectedAddress)
 	]);
 	let amt = 0;
-	am = $("in_d").value;
+	am = Number($("in_d").value);
 	if(ismax) {amt = al[1]; }
 	else {
 		if(!isFinite(am) || am<1/1e18) {notice(`<h2>Please increase amount!</h2>You have entered an invalid or zero amount.<br><br>Your input: ${am}`);return}
@@ -703,7 +703,7 @@ async function withdraw(ismax) {
 		fa.balanceOf(window.ethereum.selectedAddress)
 	]);
 	let amt = 0;
-	am = $("in_w").value;
+	am = Number($("in_w").value);
 	if(ismax) {amt = al[0]; }
 	else {
 		if(!isFinite(am) || am<1/1e18) {notice(`<h2>Please decrease amount!</h2>You have entered an invalid or exaggerated amount.<br><br>Your input: ${am}`);return}

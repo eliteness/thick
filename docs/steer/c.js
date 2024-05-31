@@ -802,7 +802,7 @@ function paintMintPremDisc(_rd) {
 	}
 }
 
-function findSuitableRatio(_ai, _bi, _ua, _ub, _ra, _rb) {
+function findSuitableRatio(_ia, _ib, _ua, _ub, _ra, _rb) {
 	_idealb = _ia * _rb/_ra;
 	if(_idealb <= _ib) {
 		if(_idealb <= _ub) { return [_ia,_ib] } // has sufficient & suitable
